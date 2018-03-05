@@ -1,0 +1,56 @@
+{
+  "provisioners": [
+
+
+    {
+      "type": "file",
+      "source": "builders/",
+      "destination": "/tmp/"
+    },
+
+
+
+    {
+      "type": "shell",
+          "inline": [
+            "sleep 30",
+            "sudo bash -xe /tmp/cdeploy.sh",
+            "sudo bash -xe /tmp/cowsay.sh",
+            "sudo bash -xe /tmp/bootstrap.sh cat"
+    ]
+  }
+
+  ],
+
+  "builders": [
+
+
+    {
+    "name": "Packer EC2",
+    "type": "amazon-ebs",
+    "region": "eu-west-1",
+    "source_ami": "ami-70edb016",
+    "instance_type": "t2.micro",
+    "ssh_username": "ec2-user",
+    "ami_name": "Packer {{timestamp}}"
+  }
+
+],
+
+
+"post-processors": [
+      [
+          {
+              "output": "ami-id.json",
+              "strip_path": true,
+              "type": "manifest"
+          },
+          {
+              "inline": [
+                  "jq -r \".builds[].artifact_id\" ami-id.json | awk -F \":\" '{print \"-var ami-id=\"$2}' | xargs terraform apply -auto-approve"
+              ],
+              "type": "shell-local"
+          }
+      ]
+  ]
+}
